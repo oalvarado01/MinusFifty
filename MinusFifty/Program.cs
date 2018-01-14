@@ -40,7 +40,7 @@ namespace MinusFifty
             await _client.LoginAsync(TokenType.Bot, Config.Global.DiscordToken);
             await _client.StartAsync();
 
-            Persistence.GoogleSheetsHelper.testSheets();
+            GoogleSheetsHelper.Instance.TestSheets();
 
             await Task.Delay(-1);
         }
@@ -64,7 +64,8 @@ namespace MinusFifty
                 return;
 
             int argPos = 0;
-            if (!(message.HasCharPrefix((char)Config.Global.CommandPrefix, ref argPos) || message.HasMentionPrefix(_client.CurrentUser, ref argPos)))
+            string cmd = Config.MergedConfig.CommandPrefix;
+            if (!(message.HasCharPrefix((char)Config.Global.CommandPrefix[0], ref argPos) || message.HasMentionPrefix(_client.CurrentUser, ref argPos)))
                 return;
 
             var context = new SocketCommandContext(_client, message);

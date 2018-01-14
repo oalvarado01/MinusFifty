@@ -155,6 +155,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\HelpCommand.cs" />
+    <Compile Include="Commands\IGNCommand.cs" />
+    <Compile Include="Commands\RequiredPermissionParameterAttribute.cs" />
     <Compile Include="Persistence\GoogleSheetsHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

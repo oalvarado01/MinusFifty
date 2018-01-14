@@ -10,18 +10,42 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JsonConfig;
+using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
 
-
-namespace MinusFifty.Persistence
+namespace MinusFifty
 {
     class GoogleSheetsHelper
     {
         // If modifying these scopes, delete your previously saved credentials
         // at ~/.credentials/sheets.googleapis.com-dotnet-quickstart.json
         static string[] Scopes = { SheetsService.Scope.Spreadsheets };
-        static string ApplicationName = "Google Sheets API .NET Quickstart";
+        static string ApplicationName = "MinusFifty";
 
-        public static void testSheets()
+        private SheetsService _service;
+        public SheetsService Service
+        {
+            get
+            {
+                return _service;
+            }
+        }
+
+        static GoogleSheetsHelper _instance;
+        public static GoogleSheetsHelper Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new GoogleSheetsHelper();
+                    _instance.Init();
+                }
+                return _instance;
+            }
+        }
+
+        private void Init()
         {
             UserCredential credential;
 
@@ -42,17 +66,74 @@ namespace MinusFifty.Persistence
             }
 
             // Create Google Sheets API service.
-            var service = new SheetsService(new BaseClientService.Initializer()
+            _service = new SheetsService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
                 ApplicationName = ApplicationName,
             });
+        }
 
+        private string SheetId()
+        {
+            return Config.Global.SheetId;
+        }
+
+        public ValueRange Get(string range)
+        {
+            return _service.Spreadsheets.Values.Get(SheetId(), range).Execute();
+        }
+
+        public async Task<ValueRange> GetAsync(string range)
+        {
+            return await _service.Spreadsheets.Values.Get(SheetId(), range).ExecuteAsync();
+        }
+
+        public int IndexInRange(ValueRange haystack, string needle)
+        {
+            for (int i = 0; i < haystack.Values.Count; ++i)
+            {
+                IList<object> row = haystack.Values[i];
+                if (string.Compare(row.First().ToString(), needle, true) == 0)
+                    return i;
+            }
+            return -1;
+        }
+
+        public UpdateValuesResponse Update(string range, ValueRange body)
+        {
+            UpdateRequest request = _service.Spreadsheets.Values.Update(body, SheetId(), range);
+            request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+            return request.Execute();
+        }
+
+        public async Task<UpdateValuesResponse> UpdateAsync(string range, ValueRange body)
+        {
+            UpdateRequest request = _service.Spreadsheets.Values.Update(body, SheetId(), range);
+            request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+            return await request.ExecuteAsync();
+        }
+
+        public AppendValuesResponse Append(string range, ValueRange body)
+        {
+            AppendRequest request = _service.Spreadsheets.Values.Append(body, SheetId(), range);
+            request.ValueInputOption = AppendRequest.ValueInputOptionEnum.USERENTERED;
+            return request.Execute();
+        }
+
+        public async Task<AppendValuesResponse> AppendAsync(string range, ValueRange body)
+        {
+            AppendRequest request = _service.Spreadsheets.Values.Append(body, SheetId(), range);
+            request.ValueInputOption = AppendRequest.ValueInputOptionEnum.USERENTERED;
+            return await request.ExecuteAsync();
+        }
+
+        public void TestSheets()
+        {
             // Define request parameters.
             String spreadsheetId = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms";
             String range = "Class Data!A2:E";
             SpreadsheetsResource.ValuesResource.GetRequest request =
-                    service.Spreadsheets.Values.Get(spreadsheetId, range);
+                    Service.Spreadsheets.Values.Get(spreadsheetId, range);
 
             // Prints the names and majors of students in a sample spreadsheet:
             // https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
