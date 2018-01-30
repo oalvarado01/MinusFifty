@@ -155,12 +155,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\AttendanceCommand.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
     <Compile Include="Commands\IGNCommand.cs" />
     <Compile Include="Commands\RequiredPermissionParameterAttribute.cs" />
+    <Compile Include="Commands\RequiredRoleAttribute.cs" />
+    <Compile Include="Commands\RequiredRoleParameterAttribute.cs" />
     <Compile Include="Persistence\GoogleSheetsHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SAttendanceEvent.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\MinusFifty\client_secret.json">

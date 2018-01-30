@@ -10,18 +10,19 @@ using MinusFifty;
 
 namespace MinusFifty.Commands
 {
+
     public class IGNCommand : ModuleBase<SocketCommandContext>
     {
         [Command("ign")]
         [Summary("Sets the current player's in-game name to <IGN>, or returns current known IGN if none specified.")]
         [Alias("name", "nickname", "nick")]
-        public async Task IGNAsync([Summary("The name to set")] string name = "", [Summary("The user to set the name on"), RequiredPermissionParameter(GuildPermission.ManageNicknames)] IUser user = null)
+        public async Task IGNAsync([Summary("The name to set")] string name = "", [Summary("The user to set the name on"), RequiredRoleParameter(388954821551456256)] IUser user = null)
         {
             var userInfo = user ?? Context.Message.Author;
             string _discordUser = userInfo.ToString();
 
             string _name = "";
-            ValueRange readResult = await GoogleSheetsHelper.Instance.GetAsync(Config.Global.NameMapSheet);
+            ValueRange readResult = await GoogleSheetsHelper.Instance.GetAsync(Config.Global.Commands.IGN.NameMapSheet);
             if (readResult.Values != null && readResult.Values.Count > 0)
             {
                 int idx = GoogleSheetsHelper.Instance.IndexInRange(readResult, _discordUser);
@@ -53,12 +54,12 @@ namespace MinusFifty.Commands
                     {
                         Values = writeValues
                     };
-                    AppendValuesResponse writeResult = await GoogleSheetsHelper.Instance.AppendAsync(Config.Global.NameMapSheet, writeBody);
+                    AppendValuesResponse writeResult = await GoogleSheetsHelper.Instance.AppendAsync(Config.Global.Commands.IGN.NameMapSheet, writeBody);
                     result = writeResult.Updates.UpdatedCells;
                 }
                 else // otherwise we're overwriting an existing line
                 {
-                    UpdateValuesResponse writeResult = await GoogleSheetsHelper.Instance.UpdateAsync(Config.Global.NameMapSheet, readResult);
+                    UpdateValuesResponse writeResult = await GoogleSheetsHelper.Instance.UpdateAsync(readResult.Range, readResult);
                     result = writeResult.UpdatedCells;
                 }
 
@@ -68,7 +69,7 @@ namespace MinusFifty.Commands
                 }
                 else
                 {
-                    await ReplyAsync($"Set {userInfo.Username}'s IGN to {name}.");
+                    await Context.Message.AddReactionAsync(new Emoji(Config.Global.AcknowledgeEmoji));
                 }
             }
         }
