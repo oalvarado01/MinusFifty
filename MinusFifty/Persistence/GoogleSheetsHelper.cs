@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using JsonConfig;
 using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
+using System.Text.RegularExpressions;
 
 namespace MinusFifty
 {
@@ -78,6 +79,79 @@ namespace MinusFifty
             return Config.Global.SheetId;
         }
 
+        public async Task<GridRange> GetGridRange(string range)
+        {
+            GridRange outputRange = new GridRange();
+            Match match = Regex.Match(range, @"(^.+)!(.+):(.+$)");
+            GroupCollection data;
+            if (match.Success)
+            {
+                data = match.Groups;
+            }
+            else
+            {
+                return outputRange;
+            }
+
+            Spreadsheet spreadsheet = await _service.Spreadsheets.Get(SheetId()).ExecuteAsync();
+            Sheet targetSheet = null;
+            foreach (Sheet sheet in spreadsheet.Sheets)
+            {
+                if (sheet.Properties.Title.Equals(data[1].ToString()))
+                {
+                    targetSheet = sheet;
+                    break;
+                }
+            }
+
+            if (targetSheet == null)
+            {
+                return outputRange;
+            }
+
+            GroupCollection data1 = null;
+            GroupCollection data2 = null;
+
+            int startIdx = -1;
+            int endIdx = -1;
+
+            Match co1 = Regex.Match(data[2].ToString(), @"(\D+)(\d+)");
+            if (co1.Success)
+            {
+                data1 = co1.Groups;
+                int.TryParse(data1[2].ToString(), out startIdx);
+                --startIdx;
+            }
+            Match co2 = Regex.Match(data[3].ToString(), @"(\D+)(\d+)");
+            if (co2.Success)
+            {
+                data2 = co2.Groups;
+                int.TryParse(data2[2].ToString(), out endIdx);
+                --endIdx;
+            }
+
+            outputRange.SheetId = targetSheet.Properties.SheetId;
+            if (startIdx >= 0)
+            {
+                outputRange.StartRowIndex = startIdx;
+            }
+            if (endIdx >= 0)
+            {
+                outputRange.EndRowIndex = endIdx;
+            }
+            outputRange.StartColumnIndex = data1 != null ? to10(data1[1].ToString()) : to10(data[2].ToString());
+            outputRange.EndColumnIndex = data2 != null ? to10(data2[1].ToString(), 1) : to10(data[3].ToString());
+
+            return outputRange;
+        }
+
+        private int to10(string a1, int add = 0)
+        {
+            int lvl = a1.Length - 1;
+            int val = add + (int)Math.Pow(26, lvl) * (a1.ToUpper()[0] - 64 - (lvl > 0 ? 0 : 1));
+            return lvl > 0 ? to10(a1.Substring(1), val) : val;
+        }
+        
         public ValueRange Get(string range)
         {
             return _service.Spreadsheets.Values.Get(SheetId(), range).Execute();
@@ -93,10 +167,56 @@ namespace MinusFifty
             for (int i = 0; i < haystack.Values.Count; ++i)
             {
                 IList<object> row = haystack.Values[i];
-                if (string.Compare(row.First().ToString(), needle, true) == 0)
+                if (row.First().ToString().ToLower().Contains(needle.ToLower()))
                     return i;
             }
             return -1;
+        }
+
+        public int SubIndexInRange(ValueRange haystack, string key, int subColumn, string needle)
+        {
+            for (int i = 0; i < haystack.Values.Count; ++i)
+            {
+                IList<object> row = haystack.Values[i];
+                if (row.First().ToString().ToLower().Contains(key.ToLower()) && row.Count > subColumn && row[subColumn].ToString().Contains(needle))
+                    return i;
+            }
+            return -1;
+        }
+
+        public async Task<BatchUpdateSpreadsheetResponse> DeleteRowsAsync(int tabId, int startRow, int endRow = -1)
+        {
+            if (endRow < 0)
+                endRow = startRow + 1;
+
+            Request request = new Request
+            {
+                DeleteDimension = new DeleteDimensionRequest
+                {
+                    Range = new DimensionRange
+                    {
+                        Dimension = "ROWS",
+                        SheetId = tabId,
+                        StartIndex = startRow,
+                        EndIndex = endRow
+                    }
+                }
+            };
+            BatchUpdateSpreadsheetRequest batchRequest = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request>()
+            };
+            batchRequest.Requests.Add(request);
+            return await _service.Spreadsheets.BatchUpdate(batchRequest, SheetId()).ExecuteAsync();
+        }
+
+        public async Task<BatchUpdateSpreadsheetResponse> TransactionAsync(IList<Request> requests)
+        {
+            BatchUpdateSpreadsheetRequest batchRequest = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = requests
+            };
+            return await _service.Spreadsheets.BatchUpdate(batchRequest, SheetId()).ExecuteAsync();
         }
 
         public UpdateValuesResponse Update(string range, ValueRange body)
