@@ -21,8 +21,8 @@ namespace MinusFifty.Commands
             IUser userInfo = user ?? Context.Message.Author;
             string _name = await Program.GetIGNFromUser(userInfo);
 
-            string result = await Program.ProcessPurchase(item, _name, qty);
-            await ReplyAsync(result);
+            var result = await Program.ProcessPurchase(item, _name, qty);
+            await ReplyAsync(result.Item2);
         }
     }
 }

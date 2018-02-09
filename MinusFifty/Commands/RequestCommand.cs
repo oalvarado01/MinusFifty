@@ -10,10 +10,39 @@ using MinusFifty;
 
 namespace MinusFifty.Commands
 {
-
+    [Group("request")]
     public class RequestCommand : ModuleBase<SocketCommandContext>
     {
-        [Command("request")]
+        [Command("list")]
+        public async Task RequestListAsync([Summary("The user to request the item for"), RequiredRoleParameter(388954821551456256)] IUser user = null)
+        {
+            IUser userInfo = user ?? Context.Message.Author;
+            string _name = await Program.GetIGNFromUser(userInfo);
+
+            string response = $"{_name} is currently requesting ";
+            bool found = false;
+            ValueRange reqResult = await GoogleSheetsHelper.Instance.GetAsync(Config.Global.DKPRequestsTab);
+            if (reqResult.Values != null && reqResult.Values.Count > 0)
+            {
+                foreach (IList<object> row in reqResult.Values)
+                {
+                    if (row[0].ToString().Equals(_name))
+                    {
+                        response += $"\n{row[2].ToString()}x {row[1].ToString()}";
+                        found = true;
+                    }
+                }
+            }
+
+            if (!found)
+            {
+                response += "nothing.";
+            }
+
+            await ReplyAsync(response);
+        }
+
+        [Command]
         [Summary("Requests <qty> of <item> from clan storage [for <player> if specified, otherwise for the current user]")]
         public async Task RequestAsync([Summary("The item to request")] string item = "", [Summary("The amount to request")] int qty = 1, [Summary("The user to request the item for"), RequiredRoleParameter(388954821551456256)] IUser user = null)
         {

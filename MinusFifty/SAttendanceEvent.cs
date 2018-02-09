@@ -12,14 +12,16 @@ namespace MinusFifty
         public string type, note;
         public List<string> members;
         public List<string> excused;
+        public ulong messageId;
 
-        public SAttendanceEvent(string type, string note)
+        public SAttendanceEvent(string type, string note, ulong id)
         {
             this.active = true;
             this.type = type;
             this.note = note;
             this.members = new List<string>();
             this.excused = new List<string>();
+            this.messageId = id;
         }
 
         public void Clear()
@@ -29,6 +31,7 @@ namespace MinusFifty
             this.note = "";
             this.members.Clear();
             this.excused.Clear();
+            this.messageId = 0;
         }
     }
 }

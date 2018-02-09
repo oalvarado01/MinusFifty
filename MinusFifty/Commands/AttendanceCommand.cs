@@ -41,10 +41,10 @@ namespace MinusFifty.Commands
                 return;
             }
 
-            Program.AttendanceEvent = new SAttendanceEvent(type, note);
-
             Discord.Rest.RestUserMessage message = await Context.Channel.SendMessageAsync($"<@&{Config.Global.Commands.Attendance.MemberRole}> Attendance tracking for {type} {note} has begun, click the check mark to be counted!");
+            Program.AttendanceEvent = new SAttendanceEvent(type, note, message.Id);
             await message.AddReactionAsync(new Emoji(Config.Global.Commands.Attendance.HereEmoji));
+            await message.PinAsync();
         }
 
         [Command("add")]
@@ -81,6 +81,30 @@ namespace MinusFifty.Commands
                 Program.AttendanceEvent.excused.Add(_name);
 
             await Context.Message.AddReactionAsync(new Emoji(Config.Global.AcknowledgeEmoji));
+        }
+
+        [Command("list")]
+        [Summary("Shows who is currently participating in the active event")]
+        public async Task ListAsync()
+        {
+            if (!Program.AttendanceEvent.active)
+            {
+                await ReplyAsync("There is no attendance event currently running!");
+                return;
+            }
+
+            string message = $"Event {Program.AttendanceEvent.type} {Program.AttendanceEvent.note} currently has the following {Program.AttendanceEvent.members.Count} members attending: ";
+            foreach (string member in Program.AttendanceEvent.members)
+                message += $"{member}, ";
+
+            if (Program.AttendanceEvent.excused.Count > 0)
+                message += $"and the following {Program.AttendanceEvent.excused.Count} member(s) excused: ";
+            foreach (string excused in Program.AttendanceEvent.excused)
+                message += $"{excused}, ";
+
+            message += "and that's all, folks!";
+
+            await ReplyAsync(message);
         }
 
         [Command("stop")]
@@ -137,16 +161,22 @@ namespace MinusFifty.Commands
                 await ReplyAsync($"Error writing DKP for event!");
             }
 
-            string message = $"Ended event {Program.AttendanceEvent.type} {Program.AttendanceEvent.note} with the following members attending: ";
+            string message = $"Ended event {Program.AttendanceEvent.type} {Program.AttendanceEvent.note} with the following {Program.AttendanceEvent.members.Count} members attending: ";
             foreach (string member in Program.AttendanceEvent.members)
                 message += $"{member}, ";
 
             if (Program.AttendanceEvent.excused.Count > 0)
-                message += "and the following members excused: ";
+                message += $"and the following {Program.AttendanceEvent.excused.Count} member(s) excused: ";
             foreach (string excused in Program.AttendanceEvent.excused)
                 message += $"{excused}, ";
 
             message += "and that's all, folks!";
+
+            IUserMessage pin = await Context.Channel.GetMessageAsync(Program.AttendanceEvent.messageId) as IUserMessage;
+            if (pin != null)
+            {
+                await pin.UnpinAsync();
+            }
 
             Program.AttendanceEvent = default(SAttendanceEvent);
             await Context.Channel.SendMessageAsync(message);

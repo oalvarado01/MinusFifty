@@ -124,12 +124,13 @@ namespace MinusFifty
             return user.Username;
         }
 
-        public static async Task<string> ProcessPurchase(string item, string name, int qty)
+        public static async Task<Tuple<bool,string>> ProcessPurchase(string item, string name, int qty)
         {
             // find the actual item from the store
             string _item = "";
             int _cost = 0;
             int _stock = 0;
+            int _lotSize = 1;
             int _itemIdx = -1;
             ValueRange itemResult = await GoogleSheetsHelper.Instance.GetAsync(Config.Global.DKPStoreTab);
             if (itemResult.Values != null && itemResult.Values.Count > 0)
@@ -140,19 +141,19 @@ namespace MinusFifty
                     _item = itemResult.Values[_itemIdx][0].ToString();
                     int.TryParse(itemResult.Values[_itemIdx][1].ToString(), out _cost);
                     int.TryParse(itemResult.Values[_itemIdx][2].ToString(), out _stock);
+                    int.TryParse(itemResult.Values[_itemIdx][4].ToString(), out _lotSize);
                 }
             }
 
             if (string.IsNullOrEmpty(_item))
             {
-                return $"Unable to find {item} in the DKP store! Use !store to list available items.";
+                return new Tuple<bool,string>(false, $"Unable to find {item} in the DKP store! Use !store to list available items.");
             }
 
             // check available clan stock of item
-            qty = Math.Min(qty, _stock);
-            if (qty <= 0)
+            if (qty * _lotSize > _stock)
             {
-                return $"The clan doesn't have any {item} available to buy!";
+                return new Tuple<bool,string>(false, $"Unable to purchase {item} for {name}: Out of stock");
             }
 
             // check available balance of player DKP
@@ -171,7 +172,7 @@ namespace MinusFifty
 
             if (_dkp < _cost * qty)
             {
-                return $"Insufficient DKP [{_dkp}] for {name} to cover the cost [{_cost * qty}] of {qty} {_item}";
+                return new Tuple<bool,string>(false, $"Insufficient DKP [{_dkp}] for {name} to cover the cost [{_cost * qty}] of {qty} {_item}");
             }
 
             IList<Request> transaction = new List<Request>();
@@ -365,7 +366,7 @@ namespace MinusFifty
                                 {
                                     UserEnteredValue = new ExtendedValue
                                     {
-                                        NumberValue = _stock - qty
+                                        NumberValue = _stock - (qty * _lotSize)
                                     }
                                 }
                             }
@@ -374,9 +375,8 @@ namespace MinusFifty
                 }
             });
 
-
             BatchUpdateSpreadsheetResponse txResponse = await GoogleSheetsHelper.Instance.TransactionAsync(transaction);
-            return $"{name} purchased {qty} {_item} for {_cost * qty} DKP";
+            return new Tuple<bool,string>(true,$"{name} purchased {qty} {_item} for {_cost * qty} DKP");
         }
     }
 }
