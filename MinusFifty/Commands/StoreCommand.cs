@@ -13,8 +13,6 @@ namespace MinusFifty.Commands
     [Group("store")]
     public class StoreCommand : ModuleBase<SocketCommandContext>
     {
-        private const int DELAY = 15000;
-
         [Command]
         [Summary("Displays information about the DKP store")]
         public async Task StoreAsync([RequiredRoleParameter(388954821551456256)] string announce = null)
@@ -44,9 +42,9 @@ namespace MinusFifty.Commands
             int _purchases = 0;
             bool _purchased = false;
             var storeWatch = System.Diagnostics.Stopwatch.StartNew();
+            GridRange range = Program.GetTabRange(Program.EDKPTabs.Main);
             while (true)
             {
-                GridRange range = await GoogleSheetsHelper.Instance.GetGridRange(Config.Global.DKPMainTab);
                 List<Request> sortRequest = new List<Request>
                 {
                     new Request
@@ -69,8 +67,22 @@ namespace MinusFifty.Commands
 
                 string _name;
                 _purchased = false;
-                ValueRange dkpResult = await GoogleSheetsHelper.Instance.GetAsync(Config.Global.DKPMainTab);
-                ValueRange reqResult = await GoogleSheetsHelper.Instance.GetAsync(Config.Global.DKPRequestsTab);
+                List<string> ranges = new List<string>
+                {
+                    Config.Global.DKPMainTab,
+                    Config.Global.DKPRequestsTab,
+                    Config.Global.DKPStoreTab
+                };
+
+                BatchGetValuesResponse response = await GoogleSheetsHelper.Instance.BatchGetAsync(ranges);
+                if (response.ValueRanges == null || response.ValueRanges.Count < ranges.Count)
+                {
+                    await ReplyAsync("Error reading spreadsheet, please restart.");
+                    break;
+                }
+                ValueRange dkpResult = response.ValueRanges[0];
+                ValueRange reqResult = response.ValueRanges[1];
+                ValueRange itemResult = response.ValueRanges[2];
                 if (dkpResult.Values != null && dkpResult.Values.Count > 0 && reqResult.Values != null && reqResult.Values.Count > 0)
                 {
                     foreach (IList<object> player in dkpResult.Values)
@@ -80,7 +92,7 @@ namespace MinusFifty.Commands
                         {
                             if (request[0].ToString().Equals(_name))
                             {
-                                var result = await Program.ProcessPurchase(request[1].ToString(), _name, 1);
+                                var result = await Program.ProcessPurchase(request[1].ToString(), _name, 1, itemResult, dkpResult, reqResult);
                                 if (result.Item1)
                                 {
                                     await ReplyAsync(result.Item2);
@@ -105,7 +117,7 @@ namespace MinusFifty.Commands
                 {
                     break;
                 }
-                await Task.Delay(DELAY);
+                await Task.Delay(Config.Global.Commands.Store.DelayMS);
             }
             storeWatch.Stop();
 

@@ -91,7 +91,7 @@ namespace MinusFifty.Commands
                 // if removing items requests in no items remaining, delete this request row
                 if (currentQty <= 0)
                 {
-                    GridRange gridRange = await GoogleSheetsHelper.Instance.GetGridRange(Config.Global.DKPRequestsTab);
+                    GridRange gridRange = Program.GetTabRange(Program.EDKPTabs.Requests);
                     
                     BatchUpdateSpreadsheetResponse deleteResult = await GoogleSheetsHelper.Instance.DeleteRowsAsync(gridRange.SheetId ?? 0, reqIdx);
                     result = deleteResult.Replies.Count;

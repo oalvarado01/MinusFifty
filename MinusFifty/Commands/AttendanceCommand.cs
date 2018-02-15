@@ -62,6 +62,9 @@ namespace MinusFifty.Commands
             if (!Program.AttendanceEvent.members.Contains(_name))
                 Program.AttendanceEvent.members.Add(_name);
 
+            if (Program.AttendanceEvent.excused.Contains(_name))
+                Program.AttendanceEvent.excused.Remove(_name);
+
             await Context.Message.AddReactionAsync(new Emoji(Config.Global.AcknowledgeEmoji));
         }
 

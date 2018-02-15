@@ -140,7 +140,7 @@ namespace MinusFifty
                 outputRange.EndRowIndex = endIdx;
             }
             outputRange.StartColumnIndex = data1 != null ? to10(data1[1].ToString()) : to10(data[2].ToString());
-            outputRange.EndColumnIndex = data2 != null ? to10(data2[1].ToString(), 1) : to10(data[3].ToString());
+            outputRange.EndColumnIndex = data2 != null ? to10(data2[1].ToString(), 1) : to10(data[3].ToString(), 1);
 
             return outputRange;
         }
@@ -160,6 +160,14 @@ namespace MinusFifty
         public async Task<ValueRange> GetAsync(string range)
         {
             return await _service.Spreadsheets.Values.Get(SheetId(), range).ExecuteAsync();
+        }
+
+        public async Task<BatchGetValuesResponse> BatchGetAsync(List<string> ranges)
+        {
+            BatchGetRequest request = _service.Spreadsheets.Values.BatchGet(SheetId());
+            request.Ranges = ranges;
+
+            return await request.ExecuteAsync();
         }
 
         public int IndexInRange(ValueRange haystack, string needle)
