@@ -228,7 +228,7 @@ namespace MinusFifty
                 return new Tuple<bool,string>(false, $"Insufficient DKP [{_dkp}] for {name} to cover the cost [{_cost * qty}] of {qty} {_item}");
             }
 
-            if (_limit + qty * _lotSize >= Config.Global.Commands.Buy.WeeklyLimit)
+            if (_limit + qty * _lotSize > Config.Global.Commands.Buy.WeeklyLimit)
             {
                 return new Tuple<bool, string>(false, $"{name} is unable to purchase {_item} due to weekly limit of {_limit}/{Config.Global.Commands.Buy.WeeklyLimit}");
             }
